@@ -1,0 +1,39 @@
+name: GitHub Pages
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "触发构建的原因"
+        required: false
+        default: "手动触发构建"
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码 🛎️
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: 设置Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: 安装依赖并构建 🔧
+        env:
+          CI: ""
+        run: |
+          cd web
+          npm install
+          npm run build
+          echo "构建完成，目录内容："
+          ls -la build
+
+      - name: 部署到GitHub Pages 🚀
+        uses: JamesIves/github-pages-deploy-action@releases/v3
+        with:
+          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          BRANCH: gh-pages # 部署目标分支
+          FOLDER: web/build # 部署源文件夹
