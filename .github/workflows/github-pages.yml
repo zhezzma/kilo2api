@@ -1,39 +1,29 @@
-name: GitHub Pages
+name: Build GitHub Pages
 on:
   workflow_dispatch:
     inputs:
-      reason:
-        description: "触发构建的原因"
+      name:
+        description: 'Reason'
         required: false
-        default: "手动触发构建"
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: 检出代码 🛎️
-        uses: actions/checkout@v3
+      - name: Checkout 🛎️
+        uses: actions/checkout@v2 # If you're using actions/checkout@v2 you must set persist-credentials to false in most cases for the deployment to work correctly.
         with:
           persist-credentials: false
-          fetch-depth: 0
-
-      - name: 设置Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-
-      - name: 安装依赖并构建 🔧
+      - name: Install and Build 🔧 # This example project is built using npm and outputs the result to the 'build' folder. Replace with the commands required to build your project, or remove this step entirely if your site is pre-built.
         env:
           CI: ""
         run: |
           cd web
           npm install
           npm run build
-          echo "构建完成，目录内容："
-          ls -la build
 
-      - name: 部署到GitHub Pages 🚀
+      - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@releases/v3
         with:
           ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
-          BRANCH: gh-pages # 部署目标分支
-          FOLDER: web/build # 部署源文件夹
+          BRANCH: gh-pages # The branch the action should deploy to.
+          FOLDER: web/build # The folder the action should deploy.

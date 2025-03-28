@@ -67,7 +67,7 @@ func InitSGCookies() {
 
 	KLCookies = []string{}
 
-	// 从环境变量中读取 SG_COOKIE 并拆分为切片
+	// 从环境变量中读取 KL_COOKIE 并拆分为切片
 	cookieStr := os.Getenv("KL_COOKIE")
 	if cookieStr != "" {
 
