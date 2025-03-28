@@ -150,7 +150,11 @@ Render 可以直接部署 docker 镜像,不需要 fork 仓库：[Render](https:/
 3. 使用Google登录
 <span><img src="docs/img.png" width="800"/></span>
 4. 右侧开发者工具-控制台，执行如下代码。
-   `document.querySelector('a[href^="vscode://kilocode.kilo-code/kilocode?token="]').href.split('token=')[1]`
+
+```
+document.querySelector('a[href^="vscode://kilocode.kilo-code/kilocode?token="]').href.split('token=')[1]
+```
+
 5. 打印的值即所需cookie值,即环境变量`KL_COOKIE`。
 <span><img src="docs/img2.png" width="800"/></span>
 
