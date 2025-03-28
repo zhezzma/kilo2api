@@ -31,7 +31,7 @@ _觉得有点意思的话 别忘了点个 ⭐_
 
 ### 示例:
 
-<span><img src="docs/img2.png" width="800"/></span>
+略
 
 ## 如何使用
 
