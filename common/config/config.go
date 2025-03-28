@@ -11,6 +11,7 @@ import (
 )
 
 var BackendSecret = os.Getenv("BACKEND_SECRET")
+var KLCookie = os.Getenv("KL_COOKIE")
 var MysqlDsn = os.Getenv("MYSQL_DSN")
 var IpBlackList = strings.Split(os.Getenv("IP_BLACK_LIST"), ",")
 var DebugSQLEnabled = strings.ToLower(os.Getenv("DEBUG_SQL")) == "true"
