@@ -162,9 +162,9 @@ Render 可以直接部署 docker 镜像,不需要 fork 仓库：[Render](https:/
 
 当前新用户赠送15刀额度,可随时通过[kilocode](https://kilocode.ai/profile)查询余额。
 
-| 模型名称                        |
-|-----------------------------|
-| "claude-3-7-sonnet-20250219 |
+| 模型名称                       |
+|----------------------------|
+| claude-3-7-sonnet-20250219 |
 
 ## 报错排查
 
