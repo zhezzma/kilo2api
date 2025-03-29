@@ -44,8 +44,8 @@ func ConvertOpenAIToClaudeRequest(openAIReq OpenAIChatCompletionRequest) (Claude
 	claudeReq := ClaudeCompletionRequest{
 		Model:       openAIReq.Model, // 使用Claude模型
 		MaxTokens:   openAIReq.MaxTokens,
-		Temperature: 0,                // 默认温度设为0
-		Stream:      openAIReq.Stream, // 保留stream设置
+		Temperature: 0,    // 默认温度设为0
+		Stream:      true, // 保留stream设置
 	}
 
 	// 处理消息
