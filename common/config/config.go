@@ -20,6 +20,8 @@ var ChatMaxDays = env.Int("CHAT_MAX_DAYS", -1)
 var ApiSecret = os.Getenv("API_SECRET")
 var ApiSecrets = strings.Split(os.Getenv("API_SECRET"), ",")
 
+var RateLimitCookieLockDuration = env.Int("RATE_LIMIT_COOKIE_LOCK_DURATION", 10*60)
+
 // 隐藏思考过程
 var ReasoningHide = env.Int("REASONING_HIDE", 0)
 

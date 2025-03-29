@@ -173,7 +173,7 @@ func IsCloudflareChallenge(data string) bool {
 }
 
 func IsRateLimit(data string) bool {
-	if data == "Rate limit exceeded cf1" || data == "Rate limit exceeded cf2" {
+	if data == `{"error":"Too many concurrent requests","message":"You have reached your maximum concurrent request limit. Please try again later."}` {
 		return true
 	}
 
@@ -181,7 +181,7 @@ func IsRateLimit(data string) bool {
 }
 
 func IsNotLogin(data string) bool {
-	if strings.Contains(data, `{"status":-5,"message":"not login","data":{}}`) {
+	if strings.Contains(data, `{"error":"Invalid token"}`) {
 		return true
 	}
 
