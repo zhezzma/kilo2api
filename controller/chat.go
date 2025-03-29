@@ -451,7 +451,6 @@ func processNoStreamData(c *gin.Context, data string, responseId, model string, 
 	}
 
 	if eventType == "message_stop" {
-		handleMessageResult(c, responseId, model, jsonData)
 		return "", false
 	}
 
