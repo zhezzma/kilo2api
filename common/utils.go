@@ -181,7 +181,7 @@ func IsRateLimit(data string) bool {
 }
 
 func IsUsageLimitExceeded(data string) bool {
-	if data == `{"error":"Usage limit exceeded","message":"You have reached your Kilocode usage limit."}` {
+	if strings.HasPrefix(data, `{"error":"Usage limit exceeded","message":"You have reached your Kilo Code usage limit.`) {
 		return true
 	}
 
