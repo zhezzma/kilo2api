@@ -180,6 +180,14 @@ func IsRateLimit(data string) bool {
 	return false
 }
 
+func IsUsageLimitExceeded(data string) bool {
+	if data == `{"error":"Usage limit exceeded","message":"You have reached your Kilocode usage limit."}` {
+		return true
+	}
+
+	return false
+}
+
 func IsNotLogin(data string) bool {
 	if strings.Contains(data, `{"error":"Invalid token"}`) {
 		return true
@@ -189,7 +197,7 @@ func IsNotLogin(data string) bool {
 }
 
 func IsServerError(data string) bool {
-	if data == "Internal Server Error" {
+	if data == `{"error":"Service Unavailable","message":"The service is temporarily unavailable. Please try again later."}` || data == `HTTP error status: 503` {
 		return true
 	}
 

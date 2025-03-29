@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	errNoValidCookies = "No valid cookies available"
-	responseIDFormat  = "chatcmpl-%s"
+	errServerErrMsg  = "Service Unavailable"
+	responseIDFormat = "chatcmpl-%s"
 )
 
 // ChatForOpenAI @Summary OpenAI对话接口
@@ -118,6 +118,15 @@ func handleNonStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq 
 			}
 			if response.Done {
 				switch {
+				case common.IsUsageLimitExceeded(data):
+					isRateLimit = true
+					logger.Warnf(ctx, "Cookie Usage limit exceeded, switching to next cookie, attempt %d/%d, COOKIE:%s", attempt+1, maxRetries, cookie)
+					config.RemoveCookie(cookie)
+					break
+				case common.IsServerError(data):
+					logger.Errorf(ctx, errServerErrMsg)
+					c.JSON(http.StatusInternalServerError, gin.H{"error": errServerErrMsg})
+					return
 				case common.IsNotLogin(data):
 					isRateLimit = true
 					logger.Warnf(ctx, "Cookie Not Login, switching to next cookie, attempt %d/%d, COOKIE:%s", attempt+1, maxRetries, cookie)
@@ -348,6 +357,15 @@ func handleStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq mod
 
 				if response.Done {
 					switch {
+					case common.IsUsageLimitExceeded(data):
+						isRateLimit = true
+						logger.Warnf(ctx, "Cookie Usage limit exceeded, switching to next cookie, attempt %d/%d, COOKIE:%s", attempt+1, maxRetries, cookie)
+						config.RemoveCookie(cookie)
+						break SSELoop
+					case common.IsServerError(data):
+						logger.Errorf(ctx, errServerErrMsg)
+						c.JSON(http.StatusInternalServerError, gin.H{"error": errServerErrMsg})
+						return false
 					case common.IsNotLogin(data):
 						isRateLimit = true
 						logger.Warnf(ctx, "Cookie Not Login, switching to next cookie, attempt %d/%d, COOKIE:%s", attempt+1, maxRetries, cookie)
