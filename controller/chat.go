@@ -10,7 +10,7 @@ import (
 	"kilo2api/common"
 	"kilo2api/common/config"
 	logger "kilo2api/common/loggger"
-	"kilo2api/kilo"
+	"kilo2api/kilo-api"
 	"kilo2api/model"
 	"net/http"
 	"strings"
@@ -548,13 +548,13 @@ func safeClose(client cycletls.CycleTLS) {
 //	if !fileType.IsValid {
 //		return "", fmt.Errorf("invalid file type %s", fileType.Extension)
 //	}
-//	signUrl, err := kilo.GetSignURL(client, cookie, chatId, fileType.Extension)
+//	signUrl, err := kilo-api.GetSignURL(client, cookie, chatId, fileType.Extension)
 //	if err != nil {
 //		logger.Errorf(c.Request.Context(), fmt.Sprintf("GetSignURL err  %v\n", err))
 //		return "", fmt.Errorf("GetSignURL err: %v\n", err)
 //	}
 //
-//	err = kilo.UploadToS3(client, signUrl, base64Str, fileType.MimeType)
+//	err = kilo-api.UploadToS3(client, signUrl, base64Str, fileType.MimeType)
 //	if err != nil {
 //		logger.Errorf(c.Request.Context(), fmt.Sprintf("UploadToS3 err  %v\n", err))
 //		return "", err

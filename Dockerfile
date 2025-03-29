@@ -28,7 +28,7 @@ RUN apk --no-cache add ca-certificates tzdata
 COPY --from=builder /kilo2api .
 
 # 暴露端口
-EXPOSE 7033
+EXPOSE 7099
 # 工作目录
 WORKDIR /app/kilo2api/data
 # 设置入口命令

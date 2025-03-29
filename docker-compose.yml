@@ -6,7 +6,7 @@ services:
     container_name: kilo2api
     restart: always
     ports:
-      - "7033:7033"
+      - "7099:7099"
     volumes:
       - ./data:/app/kilo2api/data
     environment:
