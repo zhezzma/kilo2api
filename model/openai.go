@@ -7,10 +7,11 @@ import (
 )
 
 type OpenAIChatCompletionRequest struct {
-	Model     string              `json:"model"`
-	Stream    bool                `json:"stream"`
-	Messages  []OpenAIChatMessage `json:"messages"`
-	MaxTokens int                 `json:"max_tokens"`
+	Model       string              `json:"model"`
+	Stream      bool                `json:"stream"`
+	Messages    []OpenAIChatMessage `json:"messages"`
+	MaxTokens   int                 `json:"max_tokens"`
+	Temperature float64             `json:"temperature"`
 }
 
 type OpenAIChatMessage struct {
@@ -39,13 +40,13 @@ type ClaudeMessage struct {
 	Content interface{} `json:"content"`
 }
 
-// 将OpenAI请求转换为Claude请求的函数
+// ConvertOpenAIToClaudeRequest 将OpenAI请求转换为Claude请求的函数
 func ConvertOpenAIToClaudeRequest(openAIReq OpenAIChatCompletionRequest) (ClaudeCompletionRequest, error) {
 	claudeReq := ClaudeCompletionRequest{
 		Model:       openAIReq.Model, // 使用Claude模型
 		MaxTokens:   openAIReq.MaxTokens,
-		Temperature: 0,    // 默认温度设为0
-		Stream:      true, // 保留stream设置
+		Temperature: openAIReq.Temperature, // 默认温度设为0
+		Stream:      true,                  // 保留stream设置
 	}
 
 	// 处理消息
