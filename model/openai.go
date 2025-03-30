@@ -27,6 +27,13 @@ type ClaudeCompletionRequest struct {
 	System      []ClaudeSystemMessage `json:"system,omitempty"`
 	Messages    []ClaudeMessage       `json:"messages,omitempty"`
 	Stream      bool                  `json:"stream,omitempty"`
+	Thinking    *ClaudeThinking       `json:"thinking,omitempty"`
+}
+
+// 单独定义 Thinking 结构体
+type ClaudeThinking struct {
+	Type         string `json:"type"`
+	BudgetTokens int    `json:"budget_tokens"`
 }
 
 // 修正后的Claude系统消息结构，添加了Type字段
@@ -47,6 +54,15 @@ func ConvertOpenAIToClaudeRequest(openAIReq OpenAIChatCompletionRequest) (Claude
 		MaxTokens:   openAIReq.MaxTokens,
 		Temperature: openAIReq.Temperature, // 默认温度设为0
 		Stream:      true,                  // 保留stream设置
+	}
+
+	if strings.HasSuffix(openAIReq.Model, "-thinking") {
+		claudeReq.Model = strings.TrimSuffix(openAIReq.Model, "-thinking")
+		claudeReq.Temperature = 1
+		claudeReq.Thinking = &ClaudeThinking{
+			Type:         "enabled",
+			BudgetTokens: openAIReq.MaxTokens - 1,
+		}
 	}
 
 	// 处理消息
