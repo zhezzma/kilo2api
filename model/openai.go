@@ -27,12 +27,22 @@ type ClaudeCompletionRequest struct {
 	System      []ClaudeSystemMessage `json:"system,omitempty"`
 	Messages    []ClaudeMessage       `json:"messages,omitempty"`
 	Stream      bool                  `json:"stream,omitempty"`
+	Thinking    *ClaudeThinking       `json:"thinking,omitempty"`
+}
+
+// 单独定义 Thinking 结构体
+type ClaudeThinking struct {
+	Type         string `json:"type"`
+	BudgetTokens int    `json:"budget_tokens"`
 }
 
 // 修正后的Claude系统消息结构，添加了Type字段
 type ClaudeSystemMessage struct {
-	Type string `json:"type"` // 添加type字段
-	Text string `json:"text"`
+	Type         string `json:"type"` // 添加type字段
+	Text         string `json:"text"`
+	CacheControl struct {
+		Type string `json:"type"`
+	} `json:"cache_control"`
 }
 
 type ClaudeMessage struct {
@@ -47,6 +57,15 @@ func ConvertOpenAIToClaudeRequest(openAIReq OpenAIChatCompletionRequest) (Claude
 		MaxTokens:   openAIReq.MaxTokens,
 		Temperature: openAIReq.Temperature, // 默认温度设为0
 		Stream:      true,                  // 保留stream设置
+	}
+
+	if strings.HasSuffix(openAIReq.Model, "-thinking") {
+		claudeReq.Model = strings.TrimSuffix(openAIReq.Model, "-thinking")
+		claudeReq.Temperature = 1
+		claudeReq.Thinking = &ClaudeThinking{
+			Type:         "enabled",
+			BudgetTokens: openAIReq.MaxTokens - 1,
+		}
 	}
 
 	// 处理消息
@@ -69,6 +88,11 @@ func ConvertOpenAIToClaudeRequest(openAIReq OpenAIChatCompletionRequest) (Claude
 			systemMessages = append(systemMessages, ClaudeSystemMessage{
 				Type: "text",
 				Text: textContent,
+				CacheControl: struct {
+					Type string `json:"type"`
+				}{
+					Type: "ephemeral",
+				},
 			})
 		} else {
 			// 用户和助手消息
@@ -84,6 +108,18 @@ func ConvertOpenAIToClaudeRequest(openAIReq OpenAIChatCompletionRequest) (Claude
 				Content: msg.Content,
 			})
 		}
+	}
+
+	if len(systemMessages) == 0 {
+		systemMessages = append(systemMessages, ClaudeSystemMessage{
+			Type: "text",
+			Text: ".",
+			CacheControl: struct {
+				Type string `json:"type"`
+			}{
+				Type: "ephemeral",
+			},
+		})
 	}
 
 	claudeReq.System = systemMessages

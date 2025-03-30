@@ -79,7 +79,6 @@ func ChatForOpenAI(c *gin.Context) {
 }
 
 func handleNonStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq model.OpenAIChatCompletionRequest) {
-	responseId := fmt.Sprintf(responseIDFormat, time.Now().Format("20060102150405"))
 	ctx := c.Request.Context()
 	cookieManager := config.NewCookieManager()
 	maxRetries := len(cookieManager.Cookies)
@@ -111,6 +110,8 @@ func handleNonStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq 
 		var delta string
 		var assistantMsgContent string
 		var shouldContinue bool
+		thinkStartType := new(bool)
+		thinkEndType := new(bool)
 		for response := range sseChan {
 			data := response.Data
 			if data == "" {
@@ -143,7 +144,7 @@ func handleNonStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq 
 
 			logger.Debug(ctx, strings.TrimSpace(data))
 
-			streamDelta, streamShouldContinue := processNoStreamData(c, data, responseId, openAIReq.Model, jsonData)
+			streamDelta, streamShouldContinue := processNoStreamData(c, data, thinkStartType, thinkEndType)
 			delta = streamDelta
 			shouldContinue = streamShouldContinue
 			// 处理事件流数据
@@ -321,6 +322,9 @@ func handleStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq mod
 		return
 	}
 
+	thinkStartType := new(bool)
+	thinkEndType := new(bool)
+
 	c.Stream(func(w io.Writer) bool {
 		for attempt := 0; attempt < maxRetries; attempt++ {
 			requestBody, err := createRequestBody(c, &openAIReq)
@@ -382,7 +386,7 @@ func handleStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq mod
 
 				logger.Debug(ctx, strings.TrimSpace(data))
 
-				_, shouldContinue := processStreamData(c, data, responseId, openAIReq.Model, jsonData)
+				_, shouldContinue := processStreamData(c, data, responseId, openAIReq.Model, jsonData, thinkStartType, thinkEndType)
 				// 处理事件流数据
 
 				if !shouldContinue {
@@ -410,7 +414,7 @@ func handleStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq mod
 }
 
 // 处理流式数据的辅助函数，返回bool表示是否继续处理
-func processStreamData(c *gin.Context, data string, responseId, model string, jsonData []byte) (string, bool) {
+func processStreamData(c *gin.Context, data, responseId, model string, jsonData []byte, thinkStartType, thinkEndType *bool) (string, bool) {
 	data = strings.TrimSpace(data)
 	data = strings.TrimPrefix(data, "data: ")
 
@@ -432,23 +436,42 @@ func processStreamData(c *gin.Context, data string, responseId, model string, js
 		return "", false
 	}
 
+	var text string
 	deltaMap, ok := event["delta"].(map[string]interface{})
 	if ok {
-		text, ok := deltaMap["text"].(string)
+		thinking, ok := deltaMap["thinking"].(string)
 		if ok {
-			if err := handleDelta(c, text, responseId, model, jsonData); err != nil {
-				logger.Errorf(c.Request.Context(), "handleDelta err: %v", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-				return "", false
+			if !*thinkStartType {
+				text = "<think>\n\n" + thinking
+				*thinkStartType = true
+				*thinkEndType = false
+			} else {
+				text = thinking
 			}
-			return text, true
 		}
+
+		deltaText, ok := deltaMap["text"].(string)
+		if ok {
+			if *thinkStartType && !*thinkEndType {
+				text = "</think>\n\n" + deltaText
+				*thinkStartType = false
+				*thinkEndType = true
+			} else {
+				text = deltaText
+			}
+		}
+		if err := handleDelta(c, text, responseId, model, jsonData); err != nil {
+			logger.Errorf(c.Request.Context(), "handleDelta err: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return "", false
+		}
+		return text, true
 	}
 	return "", true
 
 }
 
-func processNoStreamData(c *gin.Context, data string, responseId, model string, jsonData []byte) (string, bool) {
+func processNoStreamData(c *gin.Context, data string, thinkStartType *bool, thinkEndType *bool) (string, bool) {
 	data = strings.TrimSpace(data)
 	data = strings.TrimPrefix(data, "data: ")
 
@@ -468,13 +491,32 @@ func processNoStreamData(c *gin.Context, data string, responseId, model string, 
 	if eventType == "message_stop" {
 		return "", false
 	}
-
+	var text string
 	deltaMap, ok := event["delta"].(map[string]interface{})
 	if ok {
-		text, ok := deltaMap["text"].(string)
+		thinking, ok := deltaMap["thinking"].(string)
 		if ok {
-			return text, true
+			if !*thinkStartType {
+				text = "<think>\n\n" + thinking
+				*thinkStartType = true
+				*thinkEndType = false
+			} else {
+				text = thinking
+			}
 		}
+
+		deltaText, ok := deltaMap["text"].(string)
+		if ok {
+			if *thinkStartType && !*thinkEndType {
+				text = "</think>\n\n" + deltaText
+				*thinkStartType = false
+				*thinkEndType = true
+			} else {
+				text = deltaText
+			}
+		}
+
+		return text, true
 	}
 	return "", true
 
