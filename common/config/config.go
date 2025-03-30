@@ -20,6 +20,8 @@ var ChatMaxDays = env.Int("CHAT_MAX_DAYS", -1)
 var ApiSecret = os.Getenv("API_SECRET")
 var ApiSecrets = strings.Split(os.Getenv("API_SECRET"), ",")
 
+var RateLimitCookieLockDuration = env.Int("RATE_LIMIT_COOKIE_LOCK_DURATION", 10*60)
+
 // 隐藏思考过程
 var ReasoningHide = env.Int("REASONING_HIDE", 0)
 
@@ -85,7 +87,7 @@ type CookieManager struct {
 }
 
 // GetSGCookies 获取 KLCookies 的副本
-func GetSGCookies() []string {
+func GetKLCookies() []string {
 	//cookiesMutex.Lock()
 	//defer cookiesMutex.Unlock()
 
@@ -98,7 +100,7 @@ func GetSGCookies() []string {
 func NewCookieManager() *CookieManager {
 	var validCookies []string
 	// 遍历 KLCookies
-	for _, cookie := range GetSGCookies() {
+	for _, cookie := range GetKLCookies() {
 		cookie = strings.TrimSpace(cookie)
 		if cookie == "" {
 			continue // 忽略空字符串
@@ -155,4 +157,21 @@ func (cm *CookieManager) GetNextCookie() (string, error) {
 
 	cm.currentIndex = (cm.currentIndex + 1) % len(cm.Cookies)
 	return cm.Cookies[cm.currentIndex], nil
+}
+
+// RemoveCookie 删除指定的 cookie（支持并发）
+func RemoveCookie(cookieToRemove string) {
+	cookiesMutex.Lock()
+	defer cookiesMutex.Unlock()
+
+	// 创建一个新的切片，过滤掉需要删除的 cookie
+	var newCookies []string
+	for _, cookie := range GetKLCookies() {
+		if cookie != cookieToRemove {
+			newCookies = append(newCookies, cookie)
+		}
+	}
+
+	// 更新 GSCookies
+	KLCookies = newCookies
 }

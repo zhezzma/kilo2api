@@ -173,7 +173,15 @@ func IsCloudflareChallenge(data string) bool {
 }
 
 func IsRateLimit(data string) bool {
-	if data == "Rate limit exceeded cf1" || data == "Rate limit exceeded cf2" {
+	if data == `{"error":"Too many concurrent requests","message":"You have reached your maximum concurrent request limit. Please try again later."}` {
+		return true
+	}
+
+	return false
+}
+
+func IsUsageLimitExceeded(data string) bool {
+	if strings.HasPrefix(data, `{"error":"Usage limit exceeded","message":"You have reached your Kilo Code usage limit.`) {
 		return true
 	}
 
@@ -181,7 +189,7 @@ func IsRateLimit(data string) bool {
 }
 
 func IsNotLogin(data string) bool {
-	if strings.Contains(data, `{"status":-5,"message":"not login","data":{}}`) {
+	if strings.Contains(data, `{"error":"Invalid token"}`) {
 		return true
 	}
 
@@ -189,7 +197,7 @@ func IsNotLogin(data string) bool {
 }
 
 func IsServerError(data string) bool {
-	if data == "Internal Server Error" {
+	if data == `{"error":"Service Unavailable","message":"The service is temporarily unavailable. Please try again later."}` || data == `HTTP error status: 503` {
 		return true
 	}
 

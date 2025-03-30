@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	errNoValidCookies = "No valid cookies available"
-	responseIDFormat  = "chatcmpl-%s"
+	errServerErrMsg  = "Service Unavailable"
+	responseIDFormat = "chatcmpl-%s"
 )
 
 // ChatForOpenAI @Summary OpenAI对话接口
@@ -112,29 +112,36 @@ func handleNonStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq 
 		var assistantMsgContent string
 		var shouldContinue bool
 		for response := range sseChan {
-			if response.Done {
-				logger.Debugf(ctx, response.Data)
-				return
-			}
-
 			data := response.Data
 			if data == "" {
 				continue
 			}
+			if response.Done {
+				switch {
+				case common.IsUsageLimitExceeded(data):
+					isRateLimit = true
+					logger.Warnf(ctx, "Cookie Usage limit exceeded, switching to next cookie, attempt %d/%d, COOKIE:%s", attempt+1, maxRetries, cookie)
+					config.RemoveCookie(cookie)
+					break
+				case common.IsServerError(data):
+					logger.Errorf(ctx, errServerErrMsg)
+					c.JSON(http.StatusInternalServerError, gin.H{"error": errServerErrMsg})
+					return
+				case common.IsNotLogin(data):
+					isRateLimit = true
+					logger.Warnf(ctx, "Cookie Not Login, switching to next cookie, attempt %d/%d, COOKIE:%s", attempt+1, maxRetries, cookie)
+					break
+				case common.IsRateLimit(data):
+					isRateLimit = true
+					logger.Warnf(ctx, "Cookie rate limited, switching to next cookie, attempt %d/%d, COOKIE:%s", attempt+1, maxRetries, cookie)
+					config.AddRateLimitCookie(cookie, time.Now().Add(time.Duration(config.RateLimitCookieLockDuration)*time.Second))
+					break
+				}
+				logger.Warnf(ctx, response.Data)
+				return
+			}
 
 			logger.Debug(ctx, strings.TrimSpace(data))
-
-			switch {
-			case common.IsCloudflareChallenge(data):
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "cf challenge"})
-				return
-			case common.IsNotLogin(data):
-				isRateLimit = true
-				logger.Warnf(ctx, "Cookie Not Login, switching to next cookie, attempt %d/%d, COOKIE:%s", attempt+1, maxRetries, cookie)
-				// 删除cookie
-				//config.RemoveCookie(cookie)
-				break
-			}
 
 			streamDelta, streamShouldContinue := processNoStreamData(c, data, responseId, openAIReq.Model, jsonData)
 			delta = streamDelta
@@ -343,29 +350,37 @@ func handleStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq mod
 					return false
 				}
 
-				if response.Done {
-					logger.Warnf(ctx, response.Data)
-					return false
-				}
-
 				data := response.Data
 				if data == "" {
 					continue
 				}
 
-				logger.Debug(ctx, strings.TrimSpace(data))
-
-				switch {
-				case common.IsCloudflareChallenge(data):
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "cf challenge"})
+				if response.Done {
+					switch {
+					case common.IsUsageLimitExceeded(data):
+						isRateLimit = true
+						logger.Warnf(ctx, "Cookie Usage limit exceeded, switching to next cookie, attempt %d/%d, COOKIE:%s", attempt+1, maxRetries, cookie)
+						config.RemoveCookie(cookie)
+						break SSELoop
+					case common.IsServerError(data):
+						logger.Errorf(ctx, errServerErrMsg)
+						c.JSON(http.StatusInternalServerError, gin.H{"error": errServerErrMsg})
+						return false
+					case common.IsNotLogin(data):
+						isRateLimit = true
+						logger.Warnf(ctx, "Cookie Not Login, switching to next cookie, attempt %d/%d, COOKIE:%s", attempt+1, maxRetries, cookie)
+						break SSELoop // 使用 label 跳出 SSE 循环
+					case common.IsRateLimit(data):
+						isRateLimit = true
+						logger.Warnf(ctx, "Cookie rate limited, switching to next cookie, attempt %d/%d, COOKIE:%s", attempt+1, maxRetries, cookie)
+						config.AddRateLimitCookie(cookie, time.Now().Add(time.Duration(config.RateLimitCookieLockDuration)*time.Second))
+						break SSELoop
+					}
+					logger.Warnf(ctx, response.Data)
 					return false
-				case common.IsNotLogin(data):
-					isRateLimit = true
-					logger.Warnf(ctx, "Cookie Not Login, switching to next cookie, attempt %d/%d, COOKIE:%s", attempt+1, maxRetries, cookie)
-					// 删除cookie
-					//config.RemoveCookie(cookie)
-					break SSELoop // 使用 label 跳出 SSE 循环
 				}
+
+				logger.Debug(ctx, strings.TrimSpace(data))
 
 				_, shouldContinue := processStreamData(c, data, responseId, openAIReq.Model, jsonData)
 				// 处理事件流数据
@@ -451,7 +466,6 @@ func processNoStreamData(c *gin.Context, data string, responseId, model string, 
 	}
 
 	if eventType == "message_stop" {
-		handleMessageResult(c, responseId, model, jsonData)
 		return "", false
 	}
 
