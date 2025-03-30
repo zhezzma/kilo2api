@@ -38,8 +38,11 @@ type ClaudeThinking struct {
 
 // 修正后的Claude系统消息结构，添加了Type字段
 type ClaudeSystemMessage struct {
-	Type string `json:"type"` // 添加type字段
-	Text string `json:"text"`
+	Type         string `json:"type"` // 添加type字段
+	Text         string `json:"text"`
+	CacheControl struct {
+		Type string `json:"type"`
+	} `json:"cache_control"`
 }
 
 type ClaudeMessage struct {
@@ -85,6 +88,11 @@ func ConvertOpenAIToClaudeRequest(openAIReq OpenAIChatCompletionRequest) (Claude
 			systemMessages = append(systemMessages, ClaudeSystemMessage{
 				Type: "text",
 				Text: textContent,
+				CacheControl: struct {
+					Type string `json:"type"`
+				}{
+					Type: "ephemeral",
+				},
 			})
 		} else {
 			// 用户和助手消息
@@ -100,6 +108,18 @@ func ConvertOpenAIToClaudeRequest(openAIReq OpenAIChatCompletionRequest) (Claude
 				Content: msg.Content,
 			})
 		}
+	}
+
+	if len(systemMessages) == 0 {
+		systemMessages = append(systemMessages, ClaudeSystemMessage{
+			Type: "text",
+			Text: ".",
+			CacheControl: struct {
+				Type string `json:"type"`
+			}{
+				Type: "ephemeral",
+			},
+		})
 	}
 
 	claudeReq.System = systemMessages
