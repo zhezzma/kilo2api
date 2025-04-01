@@ -120,6 +120,34 @@ func handleNonStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq 
 			if response.Done {
 				switch {
 				case common.IsUsageLimitExceeded(data):
+					if config.CheatEnabled {
+						split := strings.Split(cookie, "=")
+						if len(split) == 2 {
+							cookieSession := split[1]
+							cheatResp, err := client.Do(config.CheatUrl, cycletls.Options{
+								Timeout: 10 * 60 * 60,
+								Proxy:   config.ProxyUrl, // 在每个请求中设置代理
+								Body:    "",
+								Headers: map[string]string{
+									"Cookie": cookieSession,
+								},
+							}, "POST")
+							if err != nil {
+								logger.Errorf(ctx, "Cheat err Cookie: %s err: %v", cookie, err)
+								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+								return
+							}
+							if cheatResp.Status != 200 {
+								logger.Errorf(ctx, "Cheat err Cookie: %s Resp: %v", cookie, cheatResp.Body)
+								c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Cheat Resp.Status:%v Resp.Body:%v", cheatResp.Status, cheatResp.Body)})
+								return
+							}
+							logger.Debug(c, fmt.Sprintf("Cheat Success Cookie: %s", cookie))
+							attempt-- // 抵消循环结束时的attempt++
+							break
+						}
+					}
+
 					isRateLimit = true
 					logger.Warnf(ctx, "Cookie Usage limit exceeded, switching to next cookie, attempt %d/%d, COOKIE:%s", attempt+1, maxRetries, cookie)
 					config.RemoveCookie(cookie)
@@ -371,6 +399,37 @@ func handleStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq mod
 				if response.Done {
 					switch {
 					case common.IsUsageLimitExceeded(data):
+						if config.CheatEnabled {
+							split := strings.Split(cookie, "=")
+							if len(split) == 2 {
+								cookieSession := split[1]
+								cheatResp, err := client.Do(config.CheatUrl, cycletls.Options{
+									Timeout: 10 * 60 * 60,
+									Proxy:   config.ProxyUrl, // 在每个请求中设置代理
+									Body:    "",
+									Headers: map[string]string{
+										"Cookie": cookieSession,
+									},
+								}, "POST")
+								if err != nil {
+									logger.Errorf(ctx, "Cheat err Cookie: %s err: %v", cookie, err)
+									c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+									return false
+								}
+								if cheatResp.Status == 200 {
+									logger.Debug(c, fmt.Sprintf("Cheat Success Cookie: %s", cookie))
+									attempt-- // 抵消循环结束时的attempt++
+									break SSELoop
+								}
+								if cheatResp.Status == 402 {
+									logger.Warnf(ctx, "Cookie Unlink Card Cookie: %s", cookie)
+								} else {
+									logger.Errorf(ctx, "Cheat err Cookie: %s Resp: %v", cookie, cheatResp.Body)
+									c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Cheat Resp.Status:%v Resp.Body:%v", cheatResp.Status, cheatResp.Body)})
+									return false
+								}
+							}
+						}
 						isRateLimit = true
 						logger.Warnf(ctx, "Cookie Usage limit exceeded, switching to next cookie, attempt %d/%d, COOKIE:%s", attempt+1, maxRetries, cookie)
 						config.RemoveCookie(cookie)

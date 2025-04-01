@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"kilo2api/common/config"
 	logger "kilo2api/common/loggger"
+	"strings"
 )
 
 const (
@@ -14,6 +15,10 @@ const (
 )
 
 func MakeStreamChatRequest(c *gin.Context, client cycletls.CycleTLS, jsonData []byte, cookie string) (<-chan cycletls.SSEResponse, error) {
+	split := strings.Split(cookie, "=")
+	if len(split) >= 2 {
+		cookie = split[0]
+	}
 	options := cycletls.Options{
 		Timeout: 10 * 60 * 60,
 		Proxy:   config.ProxyUrl, // 在每个请求中设置代理
