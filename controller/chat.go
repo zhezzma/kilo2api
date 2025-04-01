@@ -284,7 +284,16 @@ func handleMessageResult(c *gin.Context, responseId, modelName string, jsonData 
 	finishReason := "stop"
 	var delta string
 
+	promptTokens := 0
+	completionTokens := 0
+
 	streamResp := createStreamResponse(responseId, modelName, jsonData, model.OpenAIDelta{Content: delta, Role: "assistant"}, &finishReason)
+	streamResp.Usage = model.OpenAIUsage{
+		PromptTokens:     promptTokens,
+		CompletionTokens: completionTokens,
+		TotalTokens:      promptTokens + completionTokens,
+	}
+
 	if err := sendSSEvent(c, streamResp); err != nil {
 		logger.Warnf(c.Request.Context(), "sendSSEvent err: %v", err)
 		return false
