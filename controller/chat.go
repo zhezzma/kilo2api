@@ -426,7 +426,7 @@ func handleStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq mod
 									break SSELoop
 								}
 								if cheatResp.Status == 402 {
-									logger.Warnf(ctx, "Cookie Unlink Card Cookie: %s", cookie)
+									logger.Warnf(ctx, "Cheat failed.  Cookie: %s Resp: %v", cookie, cheatResp.Body)
 								} else {
 									logger.Errorf(ctx, "Cheat err Cookie: %s Resp: %v", cookie, cheatResp.Body)
 									c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Cheat Resp.Status:%v Resp.Body:%v", cheatResp.Status, cheatResp.Body)})
