@@ -137,14 +137,18 @@ func handleNonStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq 
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 								return
 							}
-							if cheatResp.Status != 200 {
+							if cheatResp.Status == 200 {
+								logger.Debug(c, fmt.Sprintf("Cheat Success Cookie: %s", cookie))
+								attempt-- // 抵消循环结束时的attempt++
+								break
+							}
+							if cheatResp.Status == 402 {
+								logger.Warnf(ctx, "Cookie Unlink Card Cookie: %s", cookie)
+							} else {
 								logger.Errorf(ctx, "Cheat err Cookie: %s Resp: %v", cookie, cheatResp.Body)
 								c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Cheat Resp.Status:%v Resp.Body:%v", cheatResp.Status, cheatResp.Body)})
 								return
 							}
-							logger.Debug(c, fmt.Sprintf("Cheat Success Cookie: %s", cookie))
-							attempt-- // 抵消循环结束时的attempt++
-							break
 						}
 					}
 
