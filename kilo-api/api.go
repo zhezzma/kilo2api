@@ -30,7 +30,7 @@ func MakeStreamChatRequest(c *gin.Context, client cycletls.CycleTLS, jsonData []
 			"Host":              "kilocode.ai",
 			"anthropic-version": "2023-06-01",
 			"authorization":     "Bearer " + cookie,
-			"User-Agent":        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome",
+			"User-Agent":        config.UserAgent,
 		},
 	}
 
