@@ -112,6 +112,7 @@ func handleNonStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq 
 		var shouldContinue bool
 		thinkStartType := new(bool)
 		thinkEndType := new(bool)
+	SSELoop:
 		for response := range sseChan {
 			data := response.Data
 			if data == "" {
@@ -140,7 +141,7 @@ func handleNonStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq 
 							if cheatResp.Status == 200 {
 								logger.Debug(c, fmt.Sprintf("Cheat Success Cookie: %s", cookie))
 								attempt-- // 抵消循环结束时的attempt++
-								break
+								break SSELoop
 							}
 							if cheatResp.Status == 402 {
 								logger.Warnf(ctx, "Cookie Unlink Card Cookie: %s", cookie)
@@ -155,7 +156,7 @@ func handleNonStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq 
 					isRateLimit = true
 					logger.Warnf(ctx, "Cookie Usage limit exceeded, switching to next cookie, attempt %d/%d, COOKIE:%s", attempt+1, maxRetries, cookie)
 					config.RemoveCookie(cookie)
-					break
+					break SSELoop
 				case common.IsServerError(data):
 					logger.Errorf(ctx, errServerErrMsg)
 					c.JSON(http.StatusInternalServerError, gin.H{"error": errServerErrMsg})
@@ -163,12 +164,12 @@ func handleNonStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq 
 				case common.IsNotLogin(data):
 					isRateLimit = true
 					logger.Warnf(ctx, "Cookie Not Login, switching to next cookie, attempt %d/%d, COOKIE:%s", attempt+1, maxRetries, cookie)
-					break
+					break SSELoop
 				case common.IsRateLimit(data):
 					isRateLimit = true
 					logger.Warnf(ctx, "Cookie rate limited, switching to next cookie, attempt %d/%d, COOKIE:%s", attempt+1, maxRetries, cookie)
 					config.AddRateLimitCookie(cookie, time.Now().Add(time.Duration(config.RateLimitCookieLockDuration)*time.Second))
-					break
+					break SSELoop
 				}
 				logger.Warnf(ctx, response.Data)
 				return

@@ -141,6 +141,7 @@ Render 可以直接部署 docker 镜像,不需要 fork 仓库：[Render](https:/
 4. `KL_COOKIE=******`  cookie (多个请以,分隔)
 5. `REQUEST_RATE_LIMIT=60`  [可选]每分钟下的单ip请求速率限制,默认:60次/min
 6. `PROXY_URL=http://127.0.0.1:10801`  [可选]代理
+6. `USER_AGENT=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome`  [可选]请求标识,用自己的(可能)防封,默认使用作者的。
 7. `ROUTE_PREFIX=hf`  [可选]路由前缀,默认为空,添加该变量后的接口示例:`/hf/v1/chat/completions`
 8. `RATE_LIMIT_COOKIE_LOCK_DURATION=600`  [可选]到达速率限制的cookie禁用时间,默认为60s
 
