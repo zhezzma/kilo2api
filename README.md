@@ -166,7 +166,7 @@ document.querySelector('a[href^="vscode://kilocode.kilo-code/kilocode?token="]')
 
 ## 支持模型
 
-新用户注册即可获赠 $15 使用额度。如未自动到账，请前往[官方 Discord 服务器](https://discord.gg/TGhv4kWb)，在[指定频道](https://discord.com/channels/1349288496988160052/1355527689272033391)提交注册邮箱，审核通过后额度将添加至账户。可随时通过[kilocode](https://kilocode.ai/profile)查询余额。
+新用户注册即可获赠 $15 使用额度。如未自动到账，请前往[官方 Discord 服务器](https://discord.com/invite/Ja6BkfyTzJ)，在[指定频道](https://discord.com/channels/1349288496988160052/1355527689272033391)提交注册邮箱，审核通过后额度将添加至账户。可随时通过[kilocode](https://kilocode.ai/profile)查询余额。
 
 | 模型名称                                |
 |-------------------------------------|
