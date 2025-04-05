@@ -2,10 +2,10 @@ package kilo_api
 
 import (
 	"fmt"
-	"github.com/deanxv/CycleTLS/cycletls"
 	"github.com/gin-gonic/gin"
 	"kilo2api/common/config"
 	logger "kilo2api/common/loggger"
+	"kilo2api/cycletls"
 	"strings"
 )
 
