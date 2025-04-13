@@ -172,6 +172,7 @@ document.querySelector('a[href^="vscode://kilocode.kilo-code/kilocode?token="]')
 |-------------------------------------|
 | claude-3-7-sonnet-20250219          |
 | claude-3-7-sonnet-20250219-thinking |
+| gemini-2.5-pro-preview-03-25        |
 
 ## 报错排查
 
