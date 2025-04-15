@@ -256,7 +256,7 @@ func createRequestBody(c *gin.Context, openAIReq *model.OpenAIChatCompletionRequ
 			return nil, err
 		}
 
-	} else if modelInfo.Source == "gemini" {
+	} else if modelInfo.Source == "openrouter" {
 		geminiReq, err := model.ConvertOpenAIToGeminiRequest(*openAIReq, modelInfo)
 		if err != nil {
 			return nil, fmt.Errorf("ConvertOpenAIToGeminiRequest err: %v", err)
@@ -560,7 +560,7 @@ func processStreamData(c *gin.Context, data, responseId, model string, modelInfo
 			return text, true
 		}
 		return "", true
-	} else if modelInfo.Source == "gemini" {
+	} else if modelInfo.Source == "openrouter" {
 		// 检查是否有choices数组
 		choices, ok := event["choices"].([]interface{})
 		if !ok || len(choices) == 0 {
@@ -568,21 +568,21 @@ func processStreamData(c *gin.Context, data, responseId, model string, modelInfo
 			if _, hasUsage := event["usage"]; hasUsage {
 				return "", false
 			}
-			logger.Errorf(c.Request.Context(), "Invalid Gemini response format: choices not found or empty")
+			logger.Errorf(c.Request.Context(), "Invalid openrouter response format: choices not found or empty")
 			return "", false
 		}
 
 		// 获取第一个choice
 		choice, ok := choices[0].(map[string]interface{})
 		if !ok {
-			logger.Errorf(c.Request.Context(), "Invalid choice format in Gemini response")
+			logger.Errorf(c.Request.Context(), "Invalid choice format in openrouter response")
 			return "", false
 		}
 
 		// 获取delta内容
 		delta, ok := choice["delta"].(map[string]interface{})
 		if !ok {
-			logger.Errorf(c.Request.Context(), "Delta not found in Gemini response")
+			logger.Errorf(c.Request.Context(), "Delta not found in openrouter response")
 			return "", false
 		}
 
@@ -667,7 +667,7 @@ func processNoStreamData(c *gin.Context, data string, modelInfo common.ModelInfo
 			return text, true
 		}
 		return "", true
-	} else if modelInfo.Source == "gemini" {
+	} else if modelInfo.Source == "openrouter" {
 		// 检查是否有choices数组
 		choices, ok := event["choices"].([]interface{})
 		if !ok || len(choices) == 0 {
@@ -675,21 +675,21 @@ func processNoStreamData(c *gin.Context, data string, modelInfo common.ModelInfo
 			if _, hasUsage := event["usage"]; hasUsage {
 				return "", false
 			}
-			logger.Errorf(c.Request.Context(), "Invalid Gemini response format: choices not found or empty")
+			logger.Errorf(c.Request.Context(), "Invalid openrouter response format: choices not found or empty")
 			return "", false
 		}
 
 		// 获取第一个choice
 		choice, ok := choices[0].(map[string]interface{})
 		if !ok {
-			logger.Errorf(c.Request.Context(), "Invalid choice format in Gemini response")
+			logger.Errorf(c.Request.Context(), "Invalid choice format in openrouter response")
 			return "", false
 		}
 
 		// 获取delta内容
 		delta, ok := choice["delta"].(map[string]interface{})
 		if !ok {
-			logger.Errorf(c.Request.Context(), "Delta not found in Gemini response")
+			logger.Errorf(c.Request.Context(), "Delta not found in openrouter response")
 			return "", false
 		}
 

@@ -53,9 +53,10 @@ type ClaudeMessage struct {
 
 // ConvertOpenAIToGeminiRequest 将OpenAI请求转换为Gemini请求的函数
 func ConvertOpenAIToGeminiRequest(openAIReq OpenAIChatCompletionRequest, modelInfo common.ModelInfo) (GeminiCompletionRequest, error) {
+
 	geminiReq := GeminiCompletionRequest{
 		Model:       modelInfo.Model,       // 使用Gemini模型
-		MaxTokens:   65536,                 // Gemini默认最大token数
+		MaxTokens:   openAIReq.MaxTokens,   // Gemini默认最大token数
 		Temperature: openAIReq.Temperature, // 保留温度设置
 		Stream:      true,                  // 保留stream设置
 		StreamOptions: struct {

@@ -44,7 +44,7 @@ func MakeStreamChatRequest(c *gin.Context, client cycletls.CycleTLS, jsonData []
 			"x-stainless-retry-count":     "0",
 			"x-stainless-timeout":         "600000",
 		}
-	} else if modelInfo.Source == "gemini" {
+	} else if modelInfo.Source == "openrouter" {
 		endpoint = openRouterEndpoint
 		headers = map[string]string{
 			"User-Agent":                  "Ra/JS 4.78.1",
