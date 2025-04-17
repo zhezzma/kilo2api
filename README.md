@@ -166,7 +166,7 @@ document.querySelector('a[href^="vscode://kilocode.kilo-code/kilocode?token="]')
 
 ## 支持模型
 
-> 新用户绑卡即可获赠 $20 使用额度。如未自动到账，请前往[官方 Discord 服务器](https://discord.com/invite/Ja6BkfyTzJ)，在[指定频道](https://discord.com/channels/1349288496988160052/1355527689272033391)提交注册邮箱，审核通过后额度将添加至账户。可随时通过[kilocode](https://kilocode.ai/profile)查询余额。
+> 新用户绑卡即可获赠 $20 使用额度。如未自动到账，请前往[官方 Discord 服务器](https://discord.com/invite/Ja6BkfyTzJ)，在[指定频道](https://discord.com/channels/1349288496988160052/1355527689272033391)提交注册邮箱，审核通过后额度将添加至账户。
 
 | 模型名称                                | 
 |-------------------------------------|
@@ -174,6 +174,13 @@ document.querySelector('a[href^="vscode://kilocode.kilo-code/kilocode?token="]')
 | claude-3-7-sonnet-20250219-thinking |
 | gemini-2.5-pro-preview-03-25        |
 | gpt-4.1                             |
+
+> 可通过下图获取并保存`__Secure-next-auth.session-token`随时在[kilo查询平台](https://kl.aytsao.cn/)查询余额。
+
+<span><img src="docs/img1.png" width="400"/></span>
+
+<span><img src="docs/img3.png" width="400"/></span>
+
 
 ## 报错排查
 
