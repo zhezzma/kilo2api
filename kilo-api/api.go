@@ -27,7 +27,7 @@ func MakeStreamChatRequest(c *gin.Context, client cycletls.CycleTLS, jsonData []
 	if modelInfo.Source == "claude" {
 		endpoint = chatEndpoint
 		headers = map[string]string{
-			"User-Agent":                  "Fs/JS 0.37.0",
+			"User-Agent":                  "Rs/JS 0.37.0",
 			"Connection":                  "close",
 			"Accept":                      "application/json",
 			"Accept-Encoding":             "gzip,deflate",
@@ -47,7 +47,7 @@ func MakeStreamChatRequest(c *gin.Context, client cycletls.CycleTLS, jsonData []
 	} else if modelInfo.Source == "openrouter" {
 		endpoint = openRouterEndpoint
 		headers = map[string]string{
-			"User-Agent":                  "Ra/JS 4.78.1",
+			"User-Agent":                  "Sa/JS 4.78.1",
 			"Connection":                  "close",
 			"Accept":                      "application/json",
 			"Accept-Encoding":             "gzip,deflate",
