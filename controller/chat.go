@@ -72,13 +72,13 @@ func ChatForOpenAI(c *gin.Context) {
 	}
 
 	if openAIReq.Stream {
-		handleStreamRequest(c, client, openAIReq)
+		handleStreamRequest(c, client, openAIReq, modelInfo)
 	} else {
-		handleNonStreamRequest(c, client, openAIReq)
+		handleNonStreamRequest(c, client, openAIReq, modelInfo)
 	}
 }
 
-func handleNonStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq model.OpenAIChatCompletionRequest) {
+func handleNonStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq model.OpenAIChatCompletionRequest, modelInfo common.ModelInfo) {
 	ctx := c.Request.Context()
 	cookieManager := config.NewCookieManager()
 	maxRetries := len(cookieManager.Cookies)
@@ -88,7 +88,7 @@ func handleNonStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq 
 		return
 	}
 	for attempt := 0; attempt < maxRetries; attempt++ {
-		requestBody, err := createRequestBody(c, &openAIReq)
+		requestBody, err := createRequestBody(c, &openAIReq, modelInfo)
 		if err != nil {
 			c.JSON(500, gin.H{"error": err.Error()})
 			return
@@ -99,7 +99,7 @@ func handleNonStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq 
 			c.JSON(500, gin.H{"error": "Failed to marshal request body"})
 			return
 		}
-		sseChan, err := kilo_api.MakeStreamChatRequest(c, client, jsonData, cookie)
+		sseChan, err := kilo_api.MakeStreamChatRequest(c, client, jsonData, cookie, modelInfo)
 		if err != nil {
 			logger.Errorf(ctx, "MakeStreamChatRequest err on attempt %d: %v", attempt+1, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -177,7 +177,7 @@ func handleNonStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq 
 
 			logger.Debug(ctx, strings.TrimSpace(data))
 
-			streamDelta, streamShouldContinue := processNoStreamData(c, data, thinkStartType, thinkEndType)
+			streamDelta, streamShouldContinue := processNoStreamData(c, data, modelInfo, thinkStartType, thinkEndType)
 			delta = streamDelta
 			shouldContinue = streamShouldContinue
 			// 处理事件流数据
@@ -228,7 +228,7 @@ func handleNonStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq 
 	return
 }
 
-func createRequestBody(c *gin.Context, openAIReq *model.OpenAIChatCompletionRequest) (map[string]interface{}, error) {
+func createRequestBody(c *gin.Context, openAIReq *model.OpenAIChatCompletionRequest, modelInfo common.ModelInfo) (map[string]interface{}, error) {
 
 	client := cycletls.Init()
 	defer safeClose(client)
@@ -244,14 +244,27 @@ func createRequestBody(c *gin.Context, openAIReq *model.OpenAIChatCompletionRequ
 		openAIReq.MaxTokens = 8000
 	}
 
-	claudeRequest, err := model.ConvertOpenAIToClaudeRequest(*openAIReq)
-	if err != nil {
-		return nil, fmt.Errorf("ConvertOpenAIToClaudeRequest err: %v", err)
-	}
+	var data []byte
+	var err error
+	if modelInfo.Source == "claude" {
+		claudeRequest, err := model.ConvertOpenAIToClaudeRequest(*openAIReq, modelInfo)
+		if err != nil {
+			return nil, fmt.Errorf("ConvertOpenAIToClaudeRequest err: %v", err)
+		}
+		data, err = json.Marshal(claudeRequest)
+		if err != nil {
+			return nil, err
+		}
 
-	data, err := json.Marshal(claudeRequest)
-	if err != nil {
-		return nil, err
+	} else if modelInfo.Source == "openrouter" {
+		geminiReq, err := model.ConvertOpenAIToGeminiRequest(*openAIReq, modelInfo)
+		if err != nil {
+			return nil, fmt.Errorf("ConvertOpenAIToGeminiRequest err: %v", err)
+		}
+		data, err = json.Marshal(geminiReq)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	requestBody := make(map[string]interface{})
@@ -347,7 +360,7 @@ func sendSSEvent(c *gin.Context, response model.OpenAIChatCompletionResponse) er
 	return nil
 }
 
-func handleStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq model.OpenAIChatCompletionRequest) {
+func handleStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq model.OpenAIChatCompletionRequest, modelInfo common.ModelInfo) {
 
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
@@ -369,7 +382,7 @@ func handleStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq mod
 
 	c.Stream(func(w io.Writer) bool {
 		for attempt := 0; attempt < maxRetries; attempt++ {
-			requestBody, err := createRequestBody(c, &openAIReq)
+			requestBody, err := createRequestBody(c, &openAIReq, modelInfo)
 			if err != nil {
 				c.JSON(500, gin.H{"error": err.Error()})
 				return false
@@ -380,7 +393,7 @@ func handleStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq mod
 				c.JSON(500, gin.H{"error": "Failed to marshal request body"})
 				return false
 			}
-			sseChan, err := kilo_api.MakeStreamChatRequest(c, client, jsonData, cookie)
+			sseChan, err := kilo_api.MakeStreamChatRequest(c, client, jsonData, cookie, modelInfo)
 			if err != nil {
 				logger.Errorf(ctx, "MakeStreamChatRequest err on attempt %d: %v", attempt+1, err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -459,7 +472,7 @@ func handleStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq mod
 
 				logger.Debug(ctx, strings.TrimSpace(data))
 
-				_, shouldContinue := processStreamData(c, data, responseId, openAIReq.Model, jsonData, thinkStartType, thinkEndType)
+				_, shouldContinue := processStreamData(c, data, responseId, openAIReq.Model, modelInfo, jsonData, thinkStartType, thinkEndType)
 				// 处理事件流数据
 
 				if !shouldContinue {
@@ -487,9 +500,14 @@ func handleStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq mod
 }
 
 // 处理流式数据的辅助函数，返回bool表示是否继续处理
-func processStreamData(c *gin.Context, data, responseId, model string, jsonData []byte, thinkStartType, thinkEndType *bool) (string, bool) {
+func processStreamData(c *gin.Context, data, responseId, model string, modelInfo common.ModelInfo, jsonData []byte, thinkStartType, thinkEndType *bool) (string, bool) {
 	data = strings.TrimSpace(data)
 	data = strings.TrimPrefix(data, "data: ")
+
+	// 处理[DONE]标记
+	if data == "[DONE]" {
+		return "", false
+	}
 
 	var event map[string]interface{}
 	if err := json.Unmarshal([]byte(data), &event); err != nil {
@@ -498,55 +516,111 @@ func processStreamData(c *gin.Context, data, responseId, model string, jsonData 
 		return "", false
 	}
 
-	eventType, ok := event["type"]
-	if !ok {
-		logger.Errorf(c.Request.Context(), "Event type not found")
-		return "", false
-	}
-
-	if eventType == "message_stop" {
-		handleMessageResult(c, responseId, model, jsonData)
-		return "", false
-	}
-
-	var text string
-	deltaMap, ok := event["delta"].(map[string]interface{})
-	if ok {
-		thinking, ok := deltaMap["thinking"].(string)
-		if ok {
-			if !*thinkStartType {
-				text = "<think>\n\n" + thinking
-				*thinkStartType = true
-				*thinkEndType = false
-			} else {
-				text = thinking
-			}
+	if modelInfo.Source == "claude" {
+		eventType, ok := event["type"]
+		if !ok {
+			logger.Errorf(c.Request.Context(), "Event type not found")
+			return "", false
 		}
 
-		deltaText, ok := deltaMap["text"].(string)
-		if ok {
-			if *thinkStartType && !*thinkEndType {
-				text = "</think>\n\n" + deltaText
-				*thinkStartType = false
-				*thinkEndType = true
-			} else {
-				text = deltaText
-			}
+		if eventType == "message_stop" {
+			handleMessageResult(c, responseId, model, jsonData)
+			return "", false
 		}
-		if err := handleDelta(c, text, responseId, model, jsonData); err != nil {
+
+		var text string
+		deltaMap, ok := event["delta"].(map[string]interface{})
+		if ok {
+			thinking, ok := deltaMap["thinking"].(string)
+			if ok {
+				if !*thinkStartType {
+					text = "<think>\n\n" + thinking
+					*thinkStartType = true
+					*thinkEndType = false
+				} else {
+					text = thinking
+				}
+			}
+
+			deltaText, ok := deltaMap["text"].(string)
+			if ok {
+				if *thinkStartType && !*thinkEndType {
+					text = "</think>\n\n" + deltaText
+					*thinkStartType = false
+					*thinkEndType = true
+				} else {
+					text = deltaText
+				}
+			}
+			if err := handleDelta(c, text, responseId, model, jsonData); err != nil {
+				logger.Errorf(c.Request.Context(), "handleDelta err: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return "", false
+			}
+			return text, true
+		}
+		return "", true
+	} else if modelInfo.Source == "openrouter" {
+		// 检查是否有choices数组
+		choices, ok := event["choices"].([]interface{})
+		if !ok || len(choices) == 0 {
+			// 如果有usage信息但没有内容，可能是最后一个消息
+			if _, hasUsage := event["usage"]; hasUsage {
+				return "", false
+			}
+			logger.Errorf(c.Request.Context(), "Invalid openrouter response format: choices not found or empty")
+			return "", false
+		}
+
+		// 获取第一个choice
+		choice, ok := choices[0].(map[string]interface{})
+		if !ok {
+			logger.Errorf(c.Request.Context(), "Invalid choice format in openrouter response")
+			return "", false
+		}
+
+		// 获取delta内容
+		delta, ok := choice["delta"].(map[string]interface{})
+		if !ok {
+			logger.Errorf(c.Request.Context(), "Delta not found in openrouter response")
+			return "", false
+		}
+
+		// 获取内容文本
+		content, ok := delta["content"].(string)
+		if !ok {
+			// 没有内容，可能是其他类型的更新
+			return "", true
+		}
+
+		// 处理文本内容
+		if err := handleDelta(c, content, responseId, model, jsonData); err != nil {
 			logger.Errorf(c.Request.Context(), "handleDelta err: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return "", false
 		}
-		return text, true
-	}
-	return "", true
 
+		// 检查是否完成 - 在处理内容后检查
+		finishReason, hasFinishReason := choice["finish_reason"]
+		if hasFinishReason && finishReason != nil && finishReason != "" {
+			// 处理完成的消息
+			handleMessageResult(c, responseId, model, jsonData)
+			return content, false // 返回内容但标记为结束
+		}
+
+		return content, true
+	}
+	return "", false
 }
 
-func processNoStreamData(c *gin.Context, data string, thinkStartType *bool, thinkEndType *bool) (string, bool) {
+func processNoStreamData(c *gin.Context, data string, modelInfo common.ModelInfo, thinkStartType *bool, thinkEndType *bool) (string, bool) {
 	data = strings.TrimSpace(data)
 	data = strings.TrimPrefix(data, "data: ")
+
+	// 处理[DONE]标记
+	if data == "[DONE]" {
+		return "", false
+	}
 
 	var event map[string]interface{}
 	if err := json.Unmarshal([]byte(data), &event); err != nil {
@@ -555,43 +629,87 @@ func processNoStreamData(c *gin.Context, data string, thinkStartType *bool, thin
 		return "", false
 	}
 
-	eventType, ok := event["type"]
-	if !ok {
-		logger.Errorf(c.Request.Context(), "Event type not found")
-		return "", false
-	}
-
-	if eventType == "message_stop" {
-		return "", false
-	}
-	var text string
-	deltaMap, ok := event["delta"].(map[string]interface{})
-	if ok {
-		thinking, ok := deltaMap["thinking"].(string)
-		if ok {
-			if !*thinkStartType {
-				text = "<think>\n\n" + thinking
-				*thinkStartType = true
-				*thinkEndType = false
-			} else {
-				text = thinking
-			}
+	if modelInfo.Source == "claude" {
+		eventType, ok := event["type"]
+		if !ok {
+			logger.Errorf(c.Request.Context(), "Event type not found")
+			return "", false
 		}
 
-		deltaText, ok := deltaMap["text"].(string)
-		if ok {
-			if *thinkStartType && !*thinkEndType {
-				text = "</think>\n\n" + deltaText
-				*thinkStartType = false
-				*thinkEndType = true
-			} else {
-				text = deltaText
-			}
+		if eventType == "message_stop" {
+			return "", false
 		}
 
-		return text, true
+		var text string
+		deltaMap, ok := event["delta"].(map[string]interface{})
+		if ok {
+			thinking, ok := deltaMap["thinking"].(string)
+			if ok {
+				if !*thinkStartType {
+					text = "<think>\n\n" + thinking
+					*thinkStartType = true
+					*thinkEndType = false
+				} else {
+					text = thinking
+				}
+			}
+
+			deltaText, ok := deltaMap["text"].(string)
+			if ok {
+				if *thinkStartType && !*thinkEndType {
+					text = "</think>\n\n" + deltaText
+					*thinkStartType = false
+					*thinkEndType = true
+				} else {
+					text = deltaText
+				}
+			}
+			return text, true
+		}
+		return "", true
+	} else if modelInfo.Source == "openrouter" {
+		// 检查是否有choices数组
+		choices, ok := event["choices"].([]interface{})
+		if !ok || len(choices) == 0 {
+			// 如果有usage信息但没有内容，可能是最后一个消息
+			if _, hasUsage := event["usage"]; hasUsage {
+				return "", false
+			}
+			logger.Errorf(c.Request.Context(), "Invalid openrouter response format: choices not found or empty")
+			return "", false
+		}
+
+		// 获取第一个choice
+		choice, ok := choices[0].(map[string]interface{})
+		if !ok {
+			logger.Errorf(c.Request.Context(), "Invalid choice format in openrouter response")
+			return "", false
+		}
+
+		// 获取delta内容
+		delta, ok := choice["delta"].(map[string]interface{})
+		if !ok {
+			logger.Errorf(c.Request.Context(), "Delta not found in openrouter response")
+			return "", false
+		}
+
+		// 获取内容文本
+		content, ok := delta["content"].(string)
+		if !ok {
+			// 没有内容，可能是其他类型的更新
+			return "", true
+		}
+
+		// 检查是否完成 - 在处理内容后检查
+		finishReason, hasFinishReason := choice["finish_reason"]
+		if hasFinishReason && finishReason != nil && finishReason != "" {
+			// 处理完成的消息
+			return content, false // 返回内容但标记为结束
+		}
+
+		return content, true
 	}
-	return "", true
+	return "", false
 
 }
 
