@@ -405,6 +405,7 @@ func handleStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq mod
 			for response := range sseChan {
 
 				if response.Status == 403 {
+					logger.Errorf(c, response.Data)
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Forbidden"})
 					return false
 				}

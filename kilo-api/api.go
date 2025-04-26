@@ -27,7 +27,7 @@ func MakeStreamChatRequest(c *gin.Context, client cycletls.CycleTLS, jsonData []
 	if modelInfo.Source == "claude" {
 		endpoint = chatEndpoint
 		headers = map[string]string{
-			"User-Agent":                  "Rs/JS 0.37.0",
+			"User-Agent":                  "Ls/JS 0.37.0",
 			"Connection":                  "close",
 			"Accept":                      "application/json",
 			"Accept-Encoding":             "gzip,deflate",
@@ -40,14 +40,14 @@ func MakeStreamChatRequest(c *gin.Context, client cycletls.CycleTLS, jsonData []
 			"x-stainless-runtime-version": "v20.18.3",
 			"authorization":               fmt.Sprintf("Bearer %s", cookie),
 			"anthropic-version":           "2023-06-01",
-			"anthropic-beta":              "prompt-caching-2024-07-31,output-128k-2025-02-19",
+			"anthropic-beta":              "prompt-caching-2024-07-31",
 			"x-stainless-retry-count":     "0",
 			"x-stainless-timeout":         "600000",
 		}
 	} else if modelInfo.Source == "openrouter" {
 		endpoint = openRouterEndpoint
 		headers = map[string]string{
-			"User-Agent":                  "Sa/JS 4.78.1",
+			"User-Agent":                  "La/JS 4.78.1",
 			"Connection":                  "close",
 			"Accept":                      "application/json",
 			"Accept-Encoding":             "gzip,deflate",
@@ -59,7 +59,7 @@ func MakeStreamChatRequest(c *gin.Context, client cycletls.CycleTLS, jsonData []
 			"x-stainless-runtime":         "node",
 			"x-stainless-runtime-version": "v20.18.3",
 			"authorization":               fmt.Sprintf("Bearer %s", cookie),
-			"http-referer":                "https://github.com/Kilo-Org/kilocode",
+			"http-referer":                "https://kilocode.ai",
 			"x-title":                     "Kilo Code",
 			"x-stainless-retry-count":     "0",
 		}
