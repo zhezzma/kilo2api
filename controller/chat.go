@@ -241,7 +241,7 @@ func createRequestBody(c *gin.Context, openAIReq *model.OpenAIChatCompletionRequ
 	}
 
 	if openAIReq.MaxTokens <= 1 {
-		openAIReq.MaxTokens = 8000
+		openAIReq.MaxTokens = 8192
 	}
 
 	var data []byte
