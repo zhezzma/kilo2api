@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -241,7 +243,7 @@ func createRequestBody(c *gin.Context, openAIReq *model.OpenAIChatCompletionRequ
 	}
 
 	if openAIReq.MaxTokens <= 1 {
-		openAIReq.MaxTokens = 8000
+		openAIReq.MaxTokens = 8192
 	}
 
 	var data []byte
@@ -405,8 +407,28 @@ func handleStreamRequest(c *gin.Context, client cycletls.CycleTLS, openAIReq mod
 			for response := range sseChan {
 
 				if response.Status == 403 {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Forbidden"})
-					return false
+					compressedData := []byte(response.Data)
+
+					compressedReader := bytes.NewReader(compressedData)
+					gzipReader, err := gzip.NewReader(compressedReader)
+					if err != nil {
+						logger.Errorf(c.Request.Context(), "Failed to create gzip reader: %v", err)
+						c.JSON(500, gin.H{"error": "Failed to create gzip reader"})
+						return false
+					}
+					// 读取解压后的数据
+					uncompressedData, err := io.ReadAll(gzipReader)
+					if err != nil {
+						logger.Errorf(c.Request.Context(), "Failed to read uncompressed data: %v", err)
+						c.JSON(500, gin.H{"error": "Failed to read uncompressed data"})
+						return false
+					}
+					gzipReader.Close()
+					logger.Errorf(c, string(uncompressedData))
+					//c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
+					config.RemoveCookie(cookie)
+					isRateLimit = true
+					break SSELoop
 				}
 
 				data := response.Data
